@@ -2,6 +2,8 @@ import osmnx as ox
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 import matplotlib.colors as mcolors
+import matplotlib.patheffects as pe
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import numpy as np
 from geopy.geocoders import Nominatim
 from tqdm import tqdm
@@ -213,7 +215,7 @@ def get_coordinates(city, country):
     else:
         raise ValueError(f"Could not find coordinates for {city}, {country}")
 
-def create_poster(city, country, point, dist, output_file):
+def create_poster(city, country, point, dist, output_file, pois=None, draw_boundary=False):
     print(f"\nGenerating map for {city}, {country}...")
     
     # Progress bar for data fetching
@@ -269,7 +271,30 @@ def create_poster(city, country, point, dist, output_file):
         show=False, close=False
     )
     
-    # Layer 3: Gradients (Top and Bottom)
+    # Get map extent for POI filtering
+    xlim = ax.get_xlim()
+    ylim = ax.get_ylim()
+    bbox = (xlim[0], xlim[1], ylim[0], ylim[1])
+    
+    # Layer 3: Boundary (optional)
+    if draw_boundary:
+        print("Fetching and drawing city boundary...")
+        try:
+            # Fetch boundary polygon
+            # Note: exact city/country string matching is important here
+            boundary_gdf = ox.geocode_to_gdf(f"{city}, {country}")
+            
+            # Plot boundary
+            # Using accent color or a default valid color if standard 'text' color is too similar to bg
+            boundary_color = THEME.get('accent', THEME['text'])
+            
+            boundary_gdf.plot(ax=ax, facecolor='none', edgecolor=boundary_color, 
+                              linewidth=1.5, linestyle='--', zorder=5)
+            print("✓ Boundary drawn")
+        except Exception as e:
+            print(f"⚠ Could not fetch/draw boundary: {e}")
+
+    # Layer 4: Gradients (Top and Bottom)
     create_gradient_fade(ax, THEME['gradient_color'], location='bottom', zorder=10)
     create_gradient_fade(ax, THEME['gradient_color'], location='top', zorder=10)
     
@@ -288,11 +313,28 @@ def create_poster(city, country, point, dist, output_file):
     
     spaced_city = "  ".join(list(city.upper()))
 
+    # Translate country to Polish if needed
+    COUNTRY_TRANSLATIONS = {
+        "POLAND": "POLSKA",
+        "GERMANY": "NIEMCY",
+        "FRANCE": "FRANCJA",
+        "SPAIN": "HISZPANIA",
+        "ITALY": "WŁOCHY",
+        "USA": "USA",
+        "UK": "WIELKA BRYTANIA",
+        "RUSSIA": "ROSJA",
+        "JAPAN": "JAPONIA",
+        "CHINA": "CHINY"
+    }
+    
+    country_upper = country.upper()
+    display_country = COUNTRY_TRANSLATIONS.get(country_upper, country_upper)
+
     # --- BOTTOM TEXT ---
     ax.text(0.5, 0.14, spaced_city, transform=ax.transAxes,
             color=THEME['text'], ha='center', fontproperties=font_main, zorder=11)
     
-    ax.text(0.5, 0.10, country.upper(), transform=ax.transAxes,
+    ax.text(0.5, 0.10, display_country, transform=ax.transAxes,
             color=THEME['text'], ha='center', fontproperties=font_sub, zorder=11)
     
     lat, lon = point
@@ -305,6 +347,94 @@ def create_poster(city, country, point, dist, output_file):
     
     ax.plot([0.4, 0.6], [0.125, 0.125], transform=ax.transAxes, 
             color=THEME['text'], linewidth=1, zorder=11)
+
+    # --- POIs ---
+    if pois:
+        print(f"Drawing {len(pois)} POIs...")
+        for poi in pois:
+            p_lat, p_lon = poi['lat'], poi['lon']
+            # Only draw if within bounds
+            if (bbox[2] <= p_lat <= bbox[3]) and (bbox[0] <= p_lon <= bbox[1]): # Note: bbox needed from ax.get_xlim/ylim or calculated
+                # Convert lat/lon to ax coords is automatic if we plot on ax with raw coords? 
+                # No, osmnx plots projected data usually? 
+                # Wait, ox.graph_from_point returns a graph in some CRS.
+                # ox.plot_graph by default projects it.
+                # If we want to plot points, we should project them too if the graph is projected.
+                # By default ox.project_graph projects to UTM.
+                # But here we didn't project the graph explicitly in script, but ox.graph_from_point loads it unprojected (WGS84) unless simplified/projected?
+                # Actually ox.plot_graph plots in lat-lon by default if G is not projected.
+                # Let's check if we project G. We don't see any 'ox.project_graph' call in existing code.
+                # So G is likely in WGS84 (lat/lon). 
+                # So we can plot directly using lat/lon, but remember X=lon, Y=lat.
+                
+                # Draw marker
+                icon_type = poi.get('icon', 'default')
+                
+                # Check if icon_type is a file path or 'stadium' (which maps to stadium.png)
+                icon_path = None
+                if os.path.exists(icon_type):
+                    icon_path = icon_type
+                elif icon_type == 'stadium' and os.path.exists('stadium.png'):
+                    icon_path = 'stadium.png'
+                
+                if icon_path:
+                    try:
+                        # Load image
+                        img = plt.imread(icon_path)
+                        
+                        # Recolor: Change non-transparent pixels to accent color
+                        if img.shape[2] == 4: # RGBA
+                            # Create mask for non-transparent pixels (Alpha > 0)
+                            mask = img[:, :, 3] > 0
+                            
+                            # Get accent color
+                            accent_color = THEME.get('accent', 'red')
+                            rgb = mcolors.to_rgb(accent_color)
+                            
+                            # Apply color preserving alpha
+                            img = img.copy()
+                            img[mask, 0] = rgb[0]
+                            img[mask, 1] = rgb[1]
+                            img[mask, 2] = rgb[2]
+                        
+                        # Create OffsetImage
+                        # zoom factor: reduced to 0.05
+                        imagebox = OffsetImage(img, zoom=0.05) 
+                        
+                        # Place image
+                        ab = AnnotationBbox(imagebox, (p_lon, p_lat),
+                                            frameon=False, pad=0, zorder=21)
+                        ax.add_artist(ab)
+                        
+                    except Exception as e:
+                        print(f"⚠ Failed to load/process icon {icon_path}: {e}")
+                        # Fallback to marker
+                        ax.plot(p_lon, p_lat, marker='o', markersize=15, color=THEME.get('accent', 'red'), 
+                                markeredgecolor='white', markeredgewidth=2, zorder=20)
+                else:
+                    # Default marker or fallback
+                    ax.plot(p_lon, p_lat, marker='o', markersize=10, color=THEME.get('accent', 'red'), 
+                            markeredgecolor='white', markeredgewidth=1, zorder=20)
+                
+                # Draw Label
+                # Offset label - move it down below the icon? Or keep top?
+                # Stadium icon might be large, so let's move text a bit lower or higher?
+                # Default behavior was top. Let's keep it but maybe increase offset if it clashes.
+                # Actually, let's put it BELOW the icon for stadium
+                va = 'top'
+                offset_y = 0
+                if icon_type == 'stadium':
+                    va = 'top' # Text below point
+                    # The text is drawn at (p_lon, p_lat). If image is centered there, text overlaps.
+                    # We can't easily offset text in data coords without knowing scale.
+                    # But we can assume a small offset.
+                    # For now keep as is, it might overlap bottom of icon.
+                    pass
+
+                ax.text(p_lon, p_lat, f"\n{poi['label']}", 
+                        color=THEME['text'], ha='center', va=va, 
+                        fontproperties=font_coords, zorder=25,
+                        path_effects=[pe.withStroke(linewidth=2, foreground=THEME['bg'])])
 
     # --- ATTRIBUTION (bottom right) ---
     if FONTS:
@@ -420,6 +550,10 @@ Examples:
     parser.add_argument('--country', '-C', type=str, help='Country name')
     parser.add_argument('--theme', '-t', type=str, default='feature_based', help='Theme name (default: feature_based)')
     parser.add_argument('--distance', '-d', type=int, default=29000, help='Map radius in meters (default: 29000)')
+    parser.add_argument('--poi', action='append', help='Custom POI: lat,lon,label,[icon_type] (can be used multiple times)')
+    parser.add_argument('--lat-offset', type=float, default=0.0, help='Shift map center North/South (degrees). Positive = North.')
+    parser.add_argument('--lon-offset', type=float, default=0.0, help='Shift map center East/West (degrees). Positive = East.')
+    parser.add_argument('--draw-boundary', action='store_true', help='Draw city administrative boundary line')
     parser.add_argument('--list-themes', action='store_true', help='List all available themes')
     
     args = parser.parse_args()
@@ -440,13 +574,30 @@ Examples:
         print_examples()
         os.sys.exit(1)
     
-    # Validate theme exists
+    # Validated theme exists
     available_themes = get_available_themes()
     if args.theme not in available_themes:
         print(f"Error: Theme '{args.theme}' not found.")
         print(f"Available themes: {', '.join(available_themes)}")
         os.sys.exit(1)
     
+    # Parse POIs
+    pois = []
+    if args.poi:
+        for poi_str in args.poi:
+            try:
+                parts = poi_str.split(',')
+                if len(parts) >= 3:
+                    lat = float(parts[0])
+                    lon = float(parts[1])
+                    label = parts[2]
+                    icon = parts[3] if len(parts) > 3 else 'default'
+                    pois.append({'lat': lat, 'lon': lon, 'label': label, 'icon': icon})
+                else:
+                    print(f"⚠ Invalid POI format: {poi_str}. Expected: lat,lon,label or lat,lon,label,icon")
+            except ValueError:
+                print(f"⚠ Invalid coordinates in POI: {poi_str}")
+
     print("=" * 50)
     print("City Map Poster Generator")
     print("=" * 50)
@@ -456,9 +607,16 @@ Examples:
     
     # Get coordinates and generate poster
     try:
-        coords = get_coordinates(args.city, args.country)
+        base_coords = get_coordinates(args.city, args.country)
+        # Apply offsets
+        coords = (base_coords[0] + args.lat_offset, base_coords[1] + args.lon_offset)
+        
+        if args.lat_offset != 0 or args.lon_offset != 0:
+            print(f"Applying offset: Lat {args.lat_offset:+.4f}, Lon {args.lon_offset:+.4f}")
+            print(f"New center: {coords[0]:.6f}, {coords[1]:.6f}")
+
         output_file = generate_output_filename(args.city, args.theme)
-        create_poster(args.city, args.country, coords, args.distance, output_file)
+        create_poster(args.city, args.country, coords, args.distance, output_file, pois=pois, draw_boundary=args.draw_boundary)
         
         print("\n" + "=" * 50)
         print("✓ Poster generation complete!")

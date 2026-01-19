@@ -1,0 +1,16 @@
+{
+    "name": "Gdańsk (Amber)",
+    "description": "Amber and Sea theme",
+    "bg": "#FFF8E1",
+    "text": "#3E2723",
+    "gradient_color": "#FFF8E1",
+    "water": "#B2EBF2",
+    "parks": "#DCEDC8",
+    "road_motorway": "#FF6F00",
+    "road_primary": "#FF8F00",
+    "road_secondary": "#FFB300",
+    "road_tertiary": "#FFCA28",
+    "road_residential": "#FFE082",
+    "road_default": "#FFE082",
+    "accent": "#FF6F00"
+}

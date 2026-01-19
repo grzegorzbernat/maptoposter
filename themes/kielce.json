@@ -1,0 +1,16 @@
+{
+    "name": "Kielce (Korona Colors)",
+    "description": "Yellow and Red theme inspired by Korona Kielce colors",
+    "bg": "#212121",
+    "text": "#FBC02D",
+    "gradient_color": "#212121",
+    "water": "#424242",
+    "parks": "#333333",
+    "road_motorway": "#FBC02D",
+    "road_primary": "#FDD835",
+    "road_secondary": "#FFEB3B",
+    "road_tertiary": "#FFF176",
+    "road_residential": "#616161",
+    "road_default": "#424242",
+    "accent": "#D32F2F"
+}

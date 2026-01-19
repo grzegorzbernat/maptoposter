@@ -1,0 +1,16 @@
+{
+    "name": "Kielce Red (Dark)",
+    "description": "Dark Red background, yellow roads, black accents",
+    "bg": "#8B0000",
+    "text": "#FFD700",
+    "gradient_color": "#8B0000",
+    "water": "#A52A2A",
+    "parks": "#800000",
+    "road_motorway": "#000000",
+    "road_primary": "#FFFFFF",
+    "road_secondary": "#FFEB3B",
+    "road_tertiary": "#FDD835",
+    "road_residential": "#FBC02D",
+    "road_default": "#FBC02D",
+    "accent": "#FFD700"
+}

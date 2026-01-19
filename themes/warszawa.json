@@ -1,0 +1,16 @@
+{
+    "name": "Warszawa (Modern)",
+    "description": "Modern urban theme for the capital",
+    "bg": "#ECEFF1",
+    "text": "#263238",
+    "gradient_color": "#ECEFF1",
+    "water": "#90A4AE",
+    "parks": "#CFD8DC",
+    "road_motorway": "#D84315",
+    "road_primary": "#EF6C00",
+    "road_secondary": "#FFA726",
+    "road_tertiary": "#B0BEC5",
+    "road_residential": "#CFD8DC",
+    "road_default": "#CFD8DC",
+    "accent": "#D84315"
+}
