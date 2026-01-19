@@ -1,0 +1,16 @@
+{
+    "name": "GKS Katowice",
+    "description": "Black background with GKS Katowice Yellow and Green colors",
+    "bg": "#000000",
+    "text": "#FEE103",
+    "gradient_color": "#000000",
+    "water": "#1D7338",
+    "parks": "#0A2010",
+    "road_motorway": "#FEE103",
+    "road_primary": "#FEE103",
+    "road_secondary": "#1D7338",
+    "road_tertiary": "#2E7D32",
+    "road_residential": "#424242",
+    "road_default": "#212121",
+    "accent": "#1D7338"
+}
