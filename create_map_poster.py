@@ -251,7 +251,7 @@ def get_coordinates(city, country):
     else:
         raise ValueError(f"Could not find coordinates for {city}, {country}")
 
-def create_poster(city, country, point, dist, output_file, output_format='png', pois=None, draw_boundary=False, icon_size=50):
+def create_poster(city, country, point, dist, output_file, output_format='png', pois=None, draw_boundary=False, icon_size=50, border_color=None):
     print(f"\nGenerating map for {city}, {country}...")
     
     # Progress bar for data fetching
@@ -460,10 +460,19 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
                             img[mask, 1] = rgb[1]
                             img[mask, 2] = rgb[2]
                         
-                        # Create OffsetImage with configurable zoom and better interpolation
-                        # Default zoom adjusted based on typical icon size (~500-1000px)
-                        zoom_factor = icon_size / max(img.shape[0], img.shape[1])
-                        imagebox = OffsetImage(img, zoom=zoom_factor, interpolation='lanczos')
+                        # Create OffsetImage with appropriate zoom
+                        # For PDF/SVG use larger size to prevent pixelation
+                        if output_format.lower() in ['pdf', 'svg']:
+                            # Use larger zoom for vector formats (will be rendered at print resolution)
+                            target_size = icon_size * 3  # 3x for better quality
+                        else:
+                            target_size = icon_size
+                        
+                        zoom_factor = target_size / max(img.shape[0], img.shape[1])
+                        
+                        # Use 'none' interpolation for PDF to preserve sharp edges
+                        interp = 'none' if output_format.lower() in ['pdf', 'svg'] else 'lanczos'
+                        imagebox = OffsetImage(img, zoom=zoom_factor, interpolation=interp)
                         
                         # Place image
                         ab = AnnotationBbox(imagebox, (p_lon, p_lat),
@@ -510,6 +519,35 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
             color=THEME['text'], alpha=0.5, ha='right', va='bottom', 
             fontproperties=font_attr, zorder=11)
 
+    # --- BORDER (optional) ---
+    if border_color:
+        import matplotlib.patches as mpatches
+        # 5mm for A4, 10mm for A3
+        # 1 inch = 25.4mm, so 5mm = 0.197in, 10mm = 0.394in
+        if output_format.lower() == 'pdf':
+            border_width_inches = 10 / 25.4  # 10mm for A3
+        else:
+            border_width_inches = 5 / 25.4   # 5mm for A4
+        
+        # Convert to figure fraction
+        fig_width, fig_height = fig.get_size_inches()
+        border_x = border_width_inches / fig_width
+        border_y = border_width_inches / fig_height
+        
+        # Draw border rectangle
+        border_rect = mpatches.Rectangle(
+            (border_x, border_y), 
+            1 - 2*border_x, 
+            1 - 2*border_y,
+            transform=fig.transFigure,
+            linewidth=2,
+            edgecolor=border_color,
+            facecolor='none',
+            zorder=100
+        )
+        fig.patches.append(border_rect)
+        print(f"✓ Added border: {border_color}")
+
     # 5. Save
     print(f"Saving to {output_file}...")
 
@@ -517,7 +555,7 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
     save_kwargs = dict(facecolor=THEME["bg"], bbox_inches="tight", pad_inches=0.05,)
 
     # DPI matters mainly for raster formats
-    if fmt == "png":
+    if fmt in ["png", "pdf"]:
         save_kwargs["dpi"] = 300
 
     plt.savefig(output_file, format=fmt, **save_kwargs)
@@ -629,6 +667,7 @@ Examples:
     parser.add_argument('--lon-offset', type=float, default=0.0, help='Shift map center East/West (degrees). Positive = East.')
     parser.add_argument('--draw-boundary', action='store_true', help='Draw city administrative boundary line')
     parser.add_argument('--icon-size', type=int, default=50, help='Target size of POI icons in pixels (default: 50)')
+    parser.add_argument('--border', type=str, default=None, help='Border color in hex (e.g., #ffffff). 5mm for A4, 10mm for A3')
     parser.add_argument('--list-themes', action='store_true', help='List all available themes')
     parser.add_argument('--format', '-f', default='png', choices=['png', 'svg', 'pdf'],help='Output format for the poster (default: png)')
     
@@ -692,7 +731,7 @@ Examples:
             print(f"New center: {coords[0]:.6f}, {coords[1]:.6f}")
 
         output_file = generate_output_filename(args.city, args.theme, args.format)
-        create_poster(args.city, args.country, coords, args.distance, output_file, output_format=args.format, pois=pois, draw_boundary=args.draw_boundary, icon_size=args.icon_size)
+        create_poster(args.city, args.country, coords, args.distance, output_file, output_format=args.format, pois=pois, draw_boundary=args.draw_boundary, icon_size=args.icon_size, border_color=args.border)
         
         print("\n" + "=" * 50)
         print("✓ Poster generation complete!")
