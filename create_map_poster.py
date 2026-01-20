@@ -476,18 +476,18 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
                         
                         # Place image
                         ab = AnnotationBbox(imagebox, (p_lon, p_lat),
-                                            frameon=False, pad=0, zorder=21)
+                                            frameon=False, pad=0, zorder=60)
                         ax.add_artist(ab)
                         
                     except Exception as e:
                         print(f"⚠ Failed to load/process icon {icon_path}: {e}")
                         # Fallback to marker
                         ax.plot(p_lon, p_lat, marker='o', markersize=15, color=THEME.get('accent', 'red'), 
-                                markeredgecolor='white', markeredgewidth=2, zorder=20)
+                                markeredgecolor='white', markeredgewidth=2, zorder=60)
                 else:
                     # Default marker or fallback
                     ax.plot(p_lon, p_lat, marker='o', markersize=10, color=THEME.get('accent', 'red'), 
-                            markeredgecolor='white', markeredgewidth=1, zorder=20)
+                            markeredgecolor='white', markeredgewidth=1, zorder=60)
                 
                 # Draw Label
                 # Offset label - move it down below the icon? Or keep top?
@@ -506,7 +506,7 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
 
                 ax.text(p_lon, p_lat, f"\n{poi['label']}", 
                         color=THEME['text'], ha='center', va=va, 
-                        fontproperties=font_coords, zorder=25,
+                        fontproperties=font_coords, zorder=65,
                         path_effects=[pe.withStroke(linewidth=2, foreground=THEME['bg'])])
 
     # --- ATTRIBUTION (bottom right) ---
