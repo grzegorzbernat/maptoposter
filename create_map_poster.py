@@ -251,7 +251,7 @@ def get_coordinates(city, country):
     else:
         raise ValueError(f"Could not find coordinates for {city}, {country}")
 
-def create_poster(city, country, point, dist, output_file, output_format='png', pois=None, draw_boundary=False):
+def create_poster(city, country, point, dist, output_file, output_format='png', pois=None, draw_boundary=False, icon_size=50):
     print(f"\nGenerating map for {city}, {country}...")
     
     # Progress bar for data fetching
@@ -283,7 +283,12 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
     
     # 2. Setup Plot
     print("Rendering map...")
-    fig, ax = plt.subplots(figsize=(12, 16), facecolor=THEME['bg'])
+    # A4 = 8.27 x 11.69 inches, A3 = 11.69 x 16.54 inches
+    if output_format.lower() == 'pdf':
+        fig_size = (11.69, 16.54)  # A3 portrait for PDF
+    else:
+        fig_size = (8.27, 11.69)   # A4 portrait for PNG/SVG
+    fig, ax = plt.subplots(figsize=fig_size, facecolor=THEME['bg'])
     ax.set_facecolor(THEME['bg'])
     ax.set_position([0, 0, 1, 1])
     
@@ -455,9 +460,10 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
                             img[mask, 1] = rgb[1]
                             img[mask, 2] = rgb[2]
                         
-                        # Create OffsetImage
-                        # zoom factor: reduced to 0.05
-                        imagebox = OffsetImage(img, zoom=0.05) 
+                        # Create OffsetImage with configurable zoom and better interpolation
+                        # Default zoom adjusted based on typical icon size (~500-1000px)
+                        zoom_factor = icon_size / max(img.shape[0], img.shape[1])
+                        imagebox = OffsetImage(img, zoom=zoom_factor, interpolation='lanczos')
                         
                         # Place image
                         ab = AnnotationBbox(imagebox, (p_lon, p_lat),
@@ -622,6 +628,7 @@ Examples:
     parser.add_argument('--lat-offset', type=float, default=0.0, help='Shift map center North/South (degrees). Positive = North.')
     parser.add_argument('--lon-offset', type=float, default=0.0, help='Shift map center East/West (degrees). Positive = East.')
     parser.add_argument('--draw-boundary', action='store_true', help='Draw city administrative boundary line')
+    parser.add_argument('--icon-size', type=int, default=50, help='Target size of POI icons in pixels (default: 50)')
     parser.add_argument('--list-themes', action='store_true', help='List all available themes')
     parser.add_argument('--format', '-f', default='png', choices=['png', 'svg', 'pdf'],help='Output format for the poster (default: png)')
     
@@ -685,7 +692,7 @@ Examples:
             print(f"New center: {coords[0]:.6f}, {coords[1]:.6f}")
 
         output_file = generate_output_filename(args.city, args.theme, args.format)
-        create_poster(args.city, args.country, coords, args.distance, output_file, output_format=args.format, pois=pois, draw_boundary=args.draw_boundary)
+        create_poster(args.city, args.country, coords, args.distance, output_file, output_format=args.format, pois=pois, draw_boundary=args.draw_boundary, icon_size=args.icon_size)
         
         print("\n" + "=" * 50)
         print("✓ Poster generation complete!")
