@@ -1,0 +1,16 @@
+{
+    "name": "Yellow-Red (Korona Inverse)",
+    "description": "Yellow background with dark red accents - inverted Korona colors",
+    "bg": "#FEE103",
+    "text": "#A70000",
+    "gradient_color": "#FEE103",
+    "water": "#8B0000",
+    "parks": "#C7B800",
+    "road_motorway": "#A70000",
+    "road_primary": "#8B0000",
+    "road_secondary": "#B71C1C",
+    "road_tertiary": "#C62828",
+    "road_residential": "#7B6200",
+    "road_default": "#8B7500",
+    "accent": "#A70000"
+}
