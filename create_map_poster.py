@@ -196,11 +196,39 @@ def get_edge_widths_by_type(G):
     
     return edge_widths
 
+COORDS_CACHE_FILE = "coords_cache.json"
+
+def load_coords_cache():
+    """Load cached coordinates from file."""
+    if os.path.exists(COORDS_CACHE_FILE):
+        try:
+            with open(COORDS_CACHE_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_coords_cache(cache):
+    """Save coordinates cache to file."""
+    with open(COORDS_CACHE_FILE, 'w', encoding='utf-8') as f:
+        json.dump(cache, f, indent=2, ensure_ascii=False)
+
 def get_coordinates(city, country):
     """
     Fetches coordinates for a given city and country using geopy.
-    Includes rate limiting to be respectful to the geocoding service.
+    Uses local cache to avoid repeated API calls.
     """
+    cache_key = f"{city.lower()},{country.lower()}"
+    cache = load_coords_cache()
+    
+    # Check cache first
+    if cache_key in cache:
+        coords = cache[cache_key]
+        print(f"✓ Found in cache: {city}, {country}")
+        print(f"✓ Coordinates: {coords[0]}, {coords[1]}")
+        return tuple(coords)
+    
+    # Not in cache - fetch from Nominatim
     print("Looking up coordinates...")
     geolocator = Nominatim(user_agent="city_map_poster")
     
@@ -212,7 +240,14 @@ def get_coordinates(city, country):
     if location:
         print(f"✓ Found: {location.address}")
         print(f"✓ Coordinates: {location.latitude}, {location.longitude}")
-        return (location.latitude, location.longitude)
+        
+        # Save to cache
+        coords = (location.latitude, location.longitude)
+        cache[cache_key] = coords
+        save_coords_cache(cache)
+        print("✓ Saved to cache")
+        
+        return coords
     else:
         raise ValueError(f"Could not find coordinates for {city}, {country}")
 
