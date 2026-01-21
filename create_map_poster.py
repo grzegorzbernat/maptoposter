@@ -100,39 +100,52 @@ def load_theme(theme_name="feature_based"):
 # Load theme (can be changed via command line or input)
 THEME = None  # Will be loaded later
 
-def create_gradient_fade(ax, color, location='bottom', zorder=10):
+def create_gradient_fade(ax, color, location='bottom', fraction=0.25, zorder=10):
     """
-    Creates a fade effect at the top or bottom of the map.
+    Creates a fade effect at the top, bottom, left or right of the map.
     """
-    vals = np.linspace(0, 1, 256).reshape(-1, 1)
-    gradient = np.hstack((vals, vals))
     
     rgb = mcolors.to_rgb(color)
-    my_colors = np.zeros((256, 4))
-    my_colors[:, 0] = rgb[0]
-    my_colors[:, 1] = rgb[1]
-    my_colors[:, 2] = rgb[2]
-    
-    if location == 'bottom':
-        my_colors[:, 3] = np.linspace(1, 0, 256)
-        extent_y_start = 0
-        extent_y_end = 0.25
-    else:
-        my_colors[:, 3] = np.linspace(0, 1, 256)
-        extent_y_start = 0.75
-        extent_y_end = 1.0
-
-    custom_cmap = mcolors.ListedColormap(my_colors)
     
     xlim = ax.get_xlim()
     ylim = ax.get_ylim()
+    x_range = xlim[1] - xlim[0]
     y_range = ylim[1] - ylim[0]
     
-    y_bottom = ylim[0] + y_range * extent_y_start
-    y_top = ylim[0] + y_range * extent_y_end
-    
-    ax.imshow(gradient, extent=[xlim[0], xlim[1], y_bottom, y_top], 
-              aspect='auto', cmap=custom_cmap, zorder=zorder, origin='lower')
+    if location in ['bottom', 'top']:
+        vals = np.linspace(0, 1, 256).reshape(-1, 1)
+        gradient = np.hstack((vals, vals))
+        
+        my_colors = np.zeros((256, 4))
+        my_colors[:, 0] = rgb[0]
+        my_colors[:, 1] = rgb[1]
+        my_colors[:, 2] = rgb[2]
+        
+        if location == 'bottom':
+            my_colors[:, 3] = np.linspace(1, 0, 256)
+            extent = [xlim[0], xlim[1], ylim[0], ylim[0] + y_range * fraction]
+        else: # top
+            my_colors[:, 3] = np.linspace(0, 1, 256)
+            extent = [xlim[0], xlim[1], ylim[1] - y_range * fraction, ylim[1]]
+            
+    elif location in ['left', 'right']:
+        vals = np.linspace(0, 1, 256).reshape(1, -1)
+        gradient = np.vstack((vals, vals))
+        
+        my_colors = np.zeros((256, 4))
+        my_colors[:, 0] = rgb[0]
+        my_colors[:, 1] = rgb[1]
+        my_colors[:, 2] = rgb[2]
+        
+        if location == 'left':
+            my_colors[:, 3] = np.linspace(1, 0, 256)
+            extent = [xlim[0], xlim[0] + x_range * fraction, ylim[0], ylim[1]]
+        else: # right
+            my_colors[:, 3] = np.linspace(0, 1, 256)
+            extent = [xlim[1] - x_range * fraction, xlim[1], ylim[0], ylim[1]]
+
+    custom_cmap = mcolors.ListedColormap(my_colors)
+    ax.imshow(gradient, extent=extent, aspect='auto', cmap=custom_cmap, zorder=zorder, origin='lower')
 
 def get_edge_colors_by_type(G):
     """
@@ -345,6 +358,17 @@ def create_poster(city, country, point, dist, output_file, output_format='png', 
     # Layer 4: Gradients (Top and Bottom)
     create_gradient_fade(ax, THEME['gradient_color'], location='bottom', zorder=10)
     create_gradient_fade(ax, THEME['gradient_color'], location='top', zorder=10)
+    
+    # Side gradients (approx 5mm for A4, 10mm for A3)
+    # A4 width = 210mm, 5mm is ~2.4%
+    # A3 width = 297mm, 10mm is ~3.4%
+    if output_format.lower() == 'pdf':
+        side_fraction = 0.034 # ~10mm on A3 width
+    else:
+        side_fraction = 0.024 # ~5mm on A4 width
+        
+    create_gradient_fade(ax, THEME['gradient_color'], location='left', fraction=side_fraction, zorder=10)
+    create_gradient_fade(ax, THEME['gradient_color'], location='right', fraction=side_fraction, zorder=10)
     
     # 4. Typography using Roboto font
     if FONTS:
