@@ -2,3 +2,6 @@ cache/*
 env/
 .env/
 posters/*
+.venv/
+.DS_Store
+posters/
