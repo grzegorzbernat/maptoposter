@@ -1,0 +1,16 @@
+{
+    "name": "White-Red",
+    "description": "Clean white background with bold red accents",
+    "bg": "#FFFFFF",
+    "text": "#D32F2F",
+    "gradient_color": "#FFFFFF",
+    "water": "#E0E0E0",
+    "parks": "#F5F5F5",
+    "road_motorway": "#D32F2F",
+    "road_primary": "#F44336",
+    "road_secondary": "#212121",
+    "road_tertiary": "#424242",
+    "road_residential": "#757575",
+    "road_default": "#9E9E9E",
+    "accent": "#D32F2F"
+}

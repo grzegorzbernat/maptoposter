@@ -1,0 +1,16 @@
+{
+    "name": "Red-White",
+    "description": "Bold red background with clean white accents",
+    "bg": "#B71C1C",
+    "text": "#FFFFFF",
+    "gradient_color": "#B71C1C",
+    "water": "#D32F2F",
+    "parks": "#C62828",
+    "road_motorway": "#FFFFFF",
+    "road_primary": "#FFEBEE",
+    "road_secondary": "#FFCDD2",
+    "road_tertiary": "#EF9A9A",
+    "road_residential": "#E57373",
+    "road_default": "#EF5350",
+    "accent": "#FFFFFF"
+}
