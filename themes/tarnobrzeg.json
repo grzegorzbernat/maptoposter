@@ -1,0 +1,16 @@
+{
+    "name": "Tarnobrzeg",
+    "description": "Inspired by the city colors and Leliwa coat of arms - Blue and Gold",
+    "bg": "#002060",
+    "text": "#FFD700",
+    "gradient_color": "#002060",
+    "water": "#4A90E2",
+    "parks": "#004080",
+    "road_motorway": "#FFD700",
+    "road_primary": "#FFC107",
+    "road_secondary": "#FFA000",
+    "road_tertiary": "#FFB300",
+    "road_residential": "#AAAAB0",
+    "road_default": "#888890",
+    "accent": "#FFD700"
+}
